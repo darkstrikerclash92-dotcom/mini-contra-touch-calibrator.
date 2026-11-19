@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Mini Contra Dos · Calibrador táctil</title>
+<style>
+:root{color-scheme:dark;--bg:#09121b;--panel:#122331;--line:#29495b;--cyan:#42d6d0;--gold:#ffc85a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#183448,#09121b 70%);color:#eef7fa;font:15px system-ui,sans-serif;padding:16px}
+main{max-width:900px;margin:auto}h1{font-size:clamp(22px,4vw,32px);margin:0 0 5px}p{color:#a9bfca;margin:4px 0 14px}.panel{background:#10202c;border:1px solid var(--line);border-radius:15px;padding:13px;margin:12px 0}
+#stageWrap{width:100%;overflow:hidden;border-radius:12px;background:#070d12;border:1px solid #355366;touch-action:none}
+#stage{position:relative;width:960px;height:540px;transform-origin:top left;background:linear-gradient(#142f3c 0 58%,#1b3328 58% 78%,#263a2d 78%);overflow:hidden;touch-action:none}
+#stage:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 39px,#ffffff08 40px),linear-gradient(90deg,#07131a66,#07131a00 35%,#07131a66)}
+.horizon{position:absolute;left:0;right:0;top:310px;height:5px;background:#78915d}.floor{position:absolute;left:0;right:0;bottom:0;height:115px;background:repeating-linear-gradient(90deg,#344d35 0 28px,#405b3a 28px 30px);border-top:5px solid #839254}
+.sample{position:absolute;left:47%;top:59%;width:28px;height:62px;background:#d6c49a;border:3px solid #26323a;border-radius:8px;opacity:.45}
+#stageTitle{position:absolute;left:22px;top:18px;color:#d4e5e8;font-weight:700;letter-spacing:2px;font-size:17px}
+.control{position:absolute;transform:translate(-50%,-50%);border:2px solid #e6f7f5aa;border-radius:50%;background:#3b9fae55;display:flex;align-items:center;justify-content:center;text-align:center;color:white;font-weight:800;user-select:none;touch-action:none;cursor:grab;text-shadow:0 2px 4px #000}
+.control.selected{border:3px solid var(--gold);box-shadow:0 0 0 4px #ffc85a33}
+.control small{font-size:13px;pointer-events:none}.stick:after{content:"";position:absolute;width:35%;height:35%;border-radius:50%;background:#d9ffff66;border:1px solid #fff8}
+#hint{font-size:12px;color:#9bb3bf;margin-top:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid button,button,select{border:1px solid #416174;background:#183345;color:#effaff;border-radius:10px;padding:11px;font:inherit}button:active{background:#28536a}.primary{background:#14645f;border-color:#36b8a8}.danger{background:#472c2c}
+label{display:block;color:#b7cbd4;font-size:13px;margin:10px 0 5px}select,input[type=range]{width:100%}input[type=range]{accent-color:var(--cyan)}
+#selectedName{font-weight:700;color:var(--gold)}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#07131b;border:1px solid #29495b;border-radius:10px;padding:12px;font-size:12px;line-height:1.5;color:#bdebe5;max-height:260px;overflow:auto}
+.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.muted{font-size:12px;color:#8fa7b3}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
+</style></head>
+<body><main>
+<h1>Mini Contra Dos — Calibrador táctil</h1>
+<p>Acomoda el HUD con el dedo. La vista usa una referencia de 960 × 540; las posiciones se exportan en coordenadas del juego.</p>
+<section class="panel"><div id="stageWrap"><div id="stage"><div id="stageTitle">MINI CONTRA DOS · VISTA PREVIA DEL HUD</div><div class="horizon"></div><div class="floor"></div><div class="sample"></div>
+<div class="control stick" data-id="move"><small>MOVER</small></div><div class="control stick" data-id="aim"><small>APUNTAR<br>FUEGO</small></div><div class="control" data-id="jump"><small>SALTO</small></div><div class="control" data-id="crouch"><small>AGACHAR</small></div>
+</div></div><div id="hint">Arrastra los controles. Toca uno para seleccionarlo y ajustar su tamaño.</div></section>
+<section class="panel">
+<div>Control seleccionado: <span id="selectedName">Movimiento</span></div>
+<label for="size">Tamaño del control</label><input id="size" type="range" min="26" max="100" value="67">
+<div class="grid" style="margin-top:12px"><button data-select="move">Movimiento</button><button data-select="aim">Apuntar / fuego</button><button data-select="jump">Salto</button><button data-select="crouch">Agacharse</button></div>
+</section>
+<section class="panel"><div class="actions"><button class="primary" id="save">Guardar diseño</button><button id="copy">Copiar código Java</button><button id="download">Descargar código</button><button class="danger" id="reset">Restaurar posiciones</button></div><p class="muted" id="status">El diseño se guarda en este navegador y permanece al volver a abrir la página en el mismo dispositivo.</p></section>
+<section class="panel"><strong>Coordenadas generadas para Mini Contra Dos</strong><pre id="code"></pre><button id="copyJson">Copiar JSON</button><pre id="json"></pre></section>
+</main>
+<script>
+(()=> {
+const W=960,H=540, defaults={
+ move:{x:130,y:105,size:67,label:"Movimiento",java:"move"},
+ aim:{x:790,y:105,size:67,label:"Apuntar / fuego",java:"aim"},
+ jump:{x:900,y:190,size:36,label:"Salto",java:"jump"},
+ crouch:{x:675,y:185,size:40,label:"Agacharse",java:"crouch"}
+};
+let data=JSON.parse(localStorage.getItem("mcd-hud-layout")||"null")||JSON.parse(JSON.stringify(defaults));
+let selected="move",drag=null;
+const stage=document.getElementById("stage"),wrap=document.getElementById("stageWrap");
+const nodes=[...document.querySelectorAll(".control")];
+function scaleStage(){const scale=wrap.clientWidth/W;stage.style.transform="scale("+scale+")";stage.style.marginBottom=(H*scale-H)+"px";wrap.style.height=(H*scale)+"px"}
+function render(){nodes.forEach(n=>{const d=data[n.dataset.id];n.style.left=d.x+"px";n.style.top=d.y+"px";n.style.width=(d.size*2)+"px";n.style.height=(d.size*2)+"px";n.classList.toggle("selected",n.dataset.id===selected)});document.getElementById("selectedName").textContent=data[selected].label;document.getElementById("size").value=data[selected].size;const entries=Object.entries(data);let lines=[];entries.forEach(([k,d])=>{lines.push("control_"+k+"_x = "+d.x.toFixed(1)+"f;");lines.push("control_"+k+"_y = "+d.y.toFixed(1)+"f;");lines.push("control_"+k+"_size = "+d.size.toFixed(1)+"f;")});document.getElementById("code").textContent=lines.join("\n");document.getElementById("json").textContent=JSON.stringify(data,null,2)}
+function point(e){const r=stage.getBoundingClientRect();const scale=r.width/W;return{x:(e.clientX-r.left)/scale,y:(e.clientY-r.top)/scale}}
+function choose(id){selected=id;render()}
+nodes.forEach(n=>{n.addEventListener("pointerdown",e=>{e.preventDefault();choose(n.dataset.id);const p=point(e);drag={id:n.dataset.id,dx:p.x-data[selected].x,dy:p.y-data[selected].y};n.setPointerCapture(e.pointerId)});n.addEventListener("pointermove",e=>{if(!drag||drag.id!==n.dataset.id)return;const p=point(e),d=data[drag.id];d.x=Math.max(d.size,Math.min(W-d.size,p.x-drag.dx));d.y=Math.max(d.size,Math.min(H-d.size,p.y-drag.dy));render()});n.addEventListener("pointerup",()=>{drag=null;save(false)});n.addEventListener("pointercancel",()=>drag=null)});
+document.querySelectorAll("[data-select]").forEach(b=>b.onclick=()=>choose(b.dataset.select));
+document.getElementById("size").oninput=e=>{data[selected].size=+e.target.value;render()};
+function save(show=true){localStorage.setItem("mcd-hud-layout",JSON.stringify(data));if(show)document.getElementById("status").textContent="Diseño guardado en este dispositivo."}
+document.getElementById("save").onclick=()=>save(true);
+document.getElementById("reset").onclick=()=>{data=JSON.parse(JSON.stringify(defaults));save(false);render();document.getElementById("status").textContent="Diseño original restaurado."};
+async function copy(t){try{await navigator.clipboard.writeText(t);document.getElementById("status").textContent="Copiado al portapapeles."}catch(e){document.getElementById("status").textContent="No se pudo copiar automáticamente; mantén pulsado el texto para seleccionarlo."}}
+document.getElementById("copy").onclick=()=>copy(document.getElementById("code").textContent);
+document.getElementById("copyJson").onclick=()=>copy(JSON.stringify(data,null,2));
+document.getElementById("download").onclick=()=>{const blob=new Blob([document.getElementById("code").textContent+"\n\n// JSON de respaldo\n// "+JSON.stringify(data)],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="mini-contra-controles.txt";a.click();URL.revokeObjectURL(a.href)};
+window.addEventListener("resize",scaleStage);scaleStage();render();
+})();
+</script></body></html>
